@@ -278,11 +278,6 @@ void typePassword()
     displayAccounts();
 }
 
-void setNumAccounts()
-{
-    numAccounts = EEPROM.read(0);
-}
-
 void resetKey()
 {
     setKey((char *)"reset");
@@ -321,7 +316,7 @@ void setup()
     Keyboard.begin();
     Serial.begin(9600);
 
-    setNumAccounts();
+    numAccounts = EEPROM.read(0);
 
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
     {
@@ -489,13 +484,11 @@ void receiveInput()
                     currentAccount = 0;
                 }
                 displayAccounts();
-                return;
             }
             else if (inputBuffer.charAt(0) == '\x7F')
             {
                 resetKey();
                 inputBuffer = "";
-                return;
             }
             else
             {

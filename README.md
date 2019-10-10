@@ -1,8 +1,14 @@
-# Arduino Passwords
+# Arduino Password Keyboard
 
 Plug in this device and select a password to type. The device acts like a keyboard and will type the selected passphrase.
 
 All passwords are stored in an AES encrypted storage.
+
+## Parts needed
+
+- Arduino Micro
+- OLED display
+- 3 push buttons
 
 ## Usage
 
@@ -16,7 +22,7 @@ On success, the account password will be entered on the connected PC. Keep in mi
 
 The device has no keyboard so adding a new password must involve a computer. Use the python utility to add a password:
 
-  python3 manage.py add
+    python3 manage.py add
 
 Then, input the account name and the password. The device will ask you to enter the password.
 
@@ -26,7 +32,7 @@ Accounts that exist, will be overwritten. Account names are case sensitive.
 
 To remove a password, launch the python utility:
 
-  python3 manage.py rm
+    python3 manage.py rm
 
 Enter the account name you want to remove and press enter. There is no authentication required on the device for now.
 
@@ -34,7 +40,7 @@ Enter the account name you want to remove and press enter. There is no authentic
 
 Launch the python utility:
 
-  python3 manage.py reset
+    python3 manage.py reset
 
 This will remove all your stored passwords and will reset the master password.
 
@@ -46,7 +52,7 @@ With an EEPROM with 8kB, 170 accounts are possible.
 
 ## Encryption
 
-The password files are AES encrypted. The AES key is generated from a sequence of pressed buttons with length 8.
+The password files are AES128 encrypted. The AES key is generated from a sequence of pressed buttons with length 8.
 
 ## TODOs
 

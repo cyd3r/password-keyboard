@@ -24,7 +24,7 @@
 #define OLED_RESET -1 // my OLED screen has no reset pin
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-AES256 aes;
+AES128 aes;
 
 const int PIN_SUBMIT = 6;
 int lastSubmitState = HIGH;

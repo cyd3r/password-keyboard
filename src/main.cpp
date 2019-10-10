@@ -234,29 +234,12 @@ void typePassword()
     size_t accountSize = accountNameLength + 2 * aes.blockSize();
 
     uint8_t buffer[bSize];
-    bool requireSecondBlock = true;
 
-    for (size_t i = 0; i < bSize; i++)
-    {
-        buffer[i] = EEPROM.read(accountOffset + currentAccount * accountSize + i + accountNameLength);
-    }
-    aes.decryptBlock(buffer, buffer);
-    for (size_t i = 0; i < bSize; i++)
-    {
-        char c = buffer[i];
-        if (c == '\0')
-        {
-            requireSecondBlock = false;
-            break;
-        }
-        Keyboard.print(c);
-    }
-
-    if (requireSecondBlock)
+    for (int k = 0; k < 2; k++)
     {
         for (size_t i = 0; i < bSize; i++)
         {
-            buffer[i] = EEPROM.read(accountOffset + currentAccount * accountSize + i + accountNameLength + bSize);
+            buffer[i] = EEPROM.read(accountOffset + currentAccount * accountSize + i + accountNameLength + k * bSize);
         }
         aes.decryptBlock(buffer, buffer);
         for (size_t i = 0; i < bSize; i++)
@@ -264,6 +247,8 @@ void typePassword()
             char c = buffer[i];
             if (c == '\0')
             {
+                // no more blocks are needed
+                k = 2;
                 break;
             }
             Keyboard.print(c);

@@ -86,7 +86,7 @@ void displayPassword(int progress, uint8_t *buffer, char *info)
     display.display();
 }
 
-void setKey(char *info)
+bool setKey(char *info, bool validate=true)
 {
     uint8_t buffer[AUTH_LEN];
     size_t index = 0;
@@ -123,25 +123,39 @@ void setKey(char *info)
         }
     }
     aes.setKey(key, aes.keySize());
+
+    if (validate)
+    {
+        uint8_t valBuffer[aes.blockSize()];
+        for (size_t i = 0; i < aes.blockSize(); i++)
+        {
+            valBuffer[i] = EEPROM.read(1 + i);
+        }
+        aes.decryptBlock(valBuffer, valBuffer);
+        for (uint8_t i = 0; i < aes.blockSize(); i++)
+        {
+            if (valBuffer[i] != i)
+            {
+                // key was incorrect, reset
+                aes.clear();
+
+                // display message
+                display.clearDisplay();
+                display.setCursor(16, 24);
+                display.setTextSize(2);
+                display.println("wrong :(");
+                display.display();
+                delay(2000);
+
+                return false;
+            }
+        }
+        return true;
+    }
+    // output doesn't matter if validate == false
+    return false;
 }
 
-bool validateKey()
-{
-    uint8_t buffer[aes.blockSize()];
-    for (size_t i = 0; i < aes.blockSize(); i++)
-    {
-        buffer[i] = EEPROM.read(1 + i);
-    }
-    aes.decryptBlock(buffer, buffer);
-    for (uint8_t i = 0; i < aes.blockSize(); i++)
-    {
-        if (buffer[i] != i)
-        {
-            return false;
-        }
-    }
-    return true;
-}
 
 void getAccountName(int accountIndex, char *buffer)
 {
@@ -182,14 +196,7 @@ void displayAccounts()
         int start = currentAccount - 3;
         for (int i = start; i <= currentAccount + 3; i++)
         {
-            if (i == currentAccount)
-            {
-                display.setTextSize(2);
-            }
-            else
-            {
-                display.setTextSize(1);
-            }
+            display.setTextSize(i == currentAccount ? 2 : 1);
             char buffer[ACCOUNT_NAME_LEN];
             getAccountName(clampAccountId(i), buffer);
             display.println(buffer);
@@ -199,28 +206,13 @@ void displayAccounts()
     display.display();
 }
 
-void displayWrongPassword()
-{
-    display.clearDisplay();
-    display.setCursor(16, 24);
-    display.setTextSize(2);
-    display.println("wrong :(");
-    display.display();
-
-    delay(2000);
-}
-
 void typePassword()
 {
     char accountName[ACCOUNT_NAME_LEN];
     getAccountName(currentAccount, accountName);
 
-    setKey(accountName);
-
-    if (!validateKey())
+    if (!setKey(accountName))
     {
-        aes.clear();
-        displayWrongPassword();
         displayAccounts();
         return;
     }
@@ -255,7 +247,7 @@ void typePassword()
 
 void resetKey()
 {
-    setKey((char *)"reset");
+    setKey((char *)"reset", false);
     // TODO: does this pose a security risk?
     uint8_t buffer[aes.blockSize()];
     for (uint8_t i = 0; i < aes.blockSize(); i++)
@@ -366,12 +358,8 @@ void storeNewPassword()
     String msg = "add " + name;
     char msgBuffer[msg.length() + 1];
     msg.toCharArray(msgBuffer, msg.length() + 1);
-    setKey(msgBuffer);
-
-    if (!validateKey())
+    if (!setKey(msgBuffer))
     {
-        aes.clear();
-        displayWrongPassword();
         displayAccounts();
         return;
     }

@@ -26,23 +26,23 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 AES256 aes;
 
-const int pinSubmit = 6;
+const int PIN_SUBMIT = 6;
 int lastSubmitState = HIGH;
 
-const int pinNextAccount = 7;
+const int PIN_NEXT_ACCOUNT = 7;
 int lastNextAccountState = HIGH;
-const int pinPrevAccount = 8;
+const int PIN_PREV_ACCOUNT = 8;
 int lastPrevAccountState = HIGH;
 
-const int accountOffset = 1 + 16;
-const int accountNameLength = 16;
+const int ACCOUNT_OFFSET = 1 + 16;
+const int ACCOUNT_NAME_LEN = 16;
 int currentAccount = 0;
 uint8_t numAccounts;
 
 String inputBuffer;
 
-// must be true: authLength % aes.keySize() == 0
-const size_t authLength = 8;
+// must be true: AUTH_LEN % aes.keySize() == 0
+const size_t AUTH_LEN = 8;
 
 bool btnIsPressed(int pin, int &last)
 {
@@ -57,12 +57,12 @@ bool btnIsPressed(int pin, int &last)
 
 int eepromAccount(int accountIndex)
 {
-    return accountOffset + accountIndex * (accountNameLength + 2 * aes.blockSize());
+    return ACCOUNT_OFFSET + accountIndex * (ACCOUNT_NAME_LEN + 2 * aes.blockSize());
 }
 
 int eepromPassword(int accountIndex, int block=0)
 {
-    return eepromAccount(accountIndex) + accountNameLength + block * aes.blockSize();
+    return eepromAccount(accountIndex) + ACCOUNT_NAME_LEN + block * aes.blockSize();
 }
 
 void displayPassword(int progress, uint8_t *buffer, char *info)
@@ -93,7 +93,7 @@ void displayPassword(int progress, uint8_t *buffer, char *info)
             break;
         }
     }
-    for (size_t i = progress; i < authLength; i++)
+    for (size_t i = progress; i < AUTH_LEN; i++)
     {
         display.print('.');
     }
@@ -102,24 +102,24 @@ void displayPassword(int progress, uint8_t *buffer, char *info)
 
 void setKey(char *info)
 {
-    uint8_t buffer[authLength];
+    uint8_t buffer[AUTH_LEN];
     size_t index = 0;
     displayPassword(0, buffer, info);
-    while (index < authLength)
+    while (index < AUTH_LEN)
     {
-        if (btnIsPressed(pinSubmit, lastSubmitState))
+        if (btnIsPressed(PIN_SUBMIT, lastSubmitState))
         {
             buffer[index] = 0x00;
             index++;
             displayPassword(index, buffer, info);
         }
-        if (btnIsPressed(pinNextAccount, lastNextAccountState))
+        if (btnIsPressed(PIN_NEXT_ACCOUNT, lastNextAccountState))
         {
             buffer[index] = 0x01;
             index++;
             displayPassword(index, buffer, info);
         }
-        if (btnIsPressed(pinPrevAccount, lastPrevAccountState))
+        if (btnIsPressed(PIN_PREV_ACCOUNT, lastPrevAccountState))
         {
             buffer[index] = 0x02;
             index++;
@@ -128,8 +128,8 @@ void setKey(char *info)
     }
 
     uint8_t key[aes.keySize()];
-    int repeat = aes.keySize() / authLength;
-    for (size_t i = 0; i < authLength; i++)
+    int repeat = aes.keySize() / AUTH_LEN;
+    for (size_t i = 0; i < AUTH_LEN; i++)
     {
         for (int k = 0; k < repeat; k++)
         {
@@ -159,7 +159,7 @@ bool validateKey()
 
 void getAccountName(int accountIndex, char *buffer)
 {
-    for (int i = 0; i < accountNameLength; i++)
+    for (int i = 0; i < ACCOUNT_NAME_LEN; i++)
     {
         char c = (char)EEPROM.read(eepromAccount(accountIndex) + i);
         buffer[i] = c;
@@ -204,7 +204,7 @@ void displayAccounts()
             {
                 display.setTextSize(1);
             }
-            char buffer[accountNameLength];
+            char buffer[ACCOUNT_NAME_LEN];
             getAccountName(clampAccountId(i), buffer);
             display.println(buffer);
         }
@@ -226,7 +226,7 @@ void displayWrongPassword()
 
 void typePassword()
 {
-    char accountName[accountNameLength];
+    char accountName[ACCOUNT_NAME_LEN];
     getAccountName(currentAccount, accountName);
 
     setKey(accountName);
@@ -290,7 +290,7 @@ void resetKey()
     numAccounts = 0;
 
     // clear the rest of the EEPROM
-    for (size_t i = accountOffset; i < EEPROM.length(); i++)
+    for (size_t i = ACCOUNT_OFFSET; i < EEPROM.length(); i++)
     {
         EEPROM.write(i, 0);
     }
@@ -300,9 +300,9 @@ void resetKey()
 
 void setup()
 {
-    pinMode(pinSubmit, INPUT_PULLUP);
-    pinMode(pinNextAccount, INPUT_PULLUP);
-    pinMode(pinPrevAccount, INPUT_PULLUP);
+    pinMode(PIN_SUBMIT, INPUT_PULLUP);
+    pinMode(PIN_NEXT_ACCOUNT, INPUT_PULLUP);
+    pinMode(PIN_PREV_ACCOUNT, INPUT_PULLUP);
     Keyboard.begin();
     Serial.begin(9600);
 
@@ -331,7 +331,7 @@ int findAccountIndex(String *name)
 {
     for (int i = 0; i < numAccounts; i++)
     {
-        char buffer[accountNameLength];
+        char buffer[ACCOUNT_NAME_LEN];
         getAccountName(i, buffer);
         String tmp(buffer);
         if (tmp.equals(*name))
@@ -351,7 +351,7 @@ void removeAccount(String *name)
         return;
     }
 
-    size_t accountSize = accountNameLength + 2 * aes.blockSize();
+    size_t accountSize = ACCOUNT_NAME_LEN + 2 * aes.blockSize();
     // move the following accounts up
     for (int i = eepromAccount(index); i < eepromAccount(numAccounts); i++)
     {
@@ -399,11 +399,11 @@ void storeNewPassword()
     {
         insertIndex = numAccounts;
         // write new account name
-        for (unsigned int i = 0; i < min(accountNameLength, name.length()); i++)
+        for (unsigned int i = 0; i < min(ACCOUNT_NAME_LEN, name.length()); i++)
         {
             EEPROM.write(eepromAccount(insertIndex) + i, name.charAt(i));
         }
-        EEPROM.write(eepromAccount(insertIndex) + min(accountNameLength, name.length()), '\0');
+        EEPROM.write(eepromAccount(insertIndex) + min(ACCOUNT_NAME_LEN, name.length()), '\0');
     }
 
     size_t pwLength = 2 * aes.blockSize();
@@ -473,18 +473,18 @@ void receiveInput()
 
 void loop()
 {
-    if (btnIsPressed(pinSubmit, lastSubmitState))
+    if (btnIsPressed(PIN_SUBMIT, lastSubmitState))
     {
         typePassword();
     }
 
-    if (btnIsPressed(pinNextAccount, lastNextAccountState))
+    if (btnIsPressed(PIN_NEXT_ACCOUNT, lastNextAccountState))
     {
         currentAccount = (currentAccount + 1) % numAccounts;
         displayAccounts();
     }
 
-    if (btnIsPressed(pinPrevAccount, lastPrevAccountState))
+    if (btnIsPressed(PIN_PREV_ACCOUNT, lastPrevAccountState))
     {
         currentAccount--;
         while (currentAccount < 0)

@@ -7,7 +7,6 @@
 
 // TODO: solve keyboard layouts
 // TODO: add wrong password cooldown
-// TODO: handle account limit
 
 #include <Arduino.h>
 #include <Keyboard.h>
@@ -43,6 +42,8 @@ String inputBuffer;
 
 // must be true: AUTH_LEN % aes.keySize() == 0
 const size_t AUTH_LEN = 8;
+
+int accountLimit = 0;
 
 bool btnIsPressed(int pin, int &last)
 {
@@ -285,6 +286,8 @@ void setup()
 
     numAccounts = EEPROM.read(0);
 
+    accountLimit = (EEPROM.length() - 17) / (ACCOUNT_NAME_LEN + 2 * aes.blockSize());
+
     if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
     {
         Serial.println(F("SSD1306 allocation failed"));
@@ -347,6 +350,10 @@ void removeAccount(String *name)
 
 void storeNewPassword()
 {
+    if (numAccounts >= accountLimit)
+    {
+        return;
+    }
     int splitIndex = inputBuffer.indexOf('\x1F');
     if (splitIndex <= -1 || splitIndex == 0 || (unsigned)splitIndex == inputBuffer.length() - 1)
     {

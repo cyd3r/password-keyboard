@@ -57,7 +57,6 @@ The password files are AES128 encrypted. The AES key is generated from a sequenc
 ## TODOs
 
 - solve keyboard layouts, currently US layout :/
-- storage limit on the EEPROM
 - add wrong password cooldown
 - add better account navigation
 - use external EEPROM

@@ -312,8 +312,10 @@ void setup()
     displayAccounts();
 }
 
-int findAccountIndex(String *name)
+void removeAccount(String *name)
 {
+    int accountIndex = -1;
+    // find the index of the account
     for (int i = 0; i < numAccounts; i++)
     {
         char buffer[ACCOUNT_NAME_LEN];
@@ -321,16 +323,12 @@ int findAccountIndex(String *name)
         String tmp(buffer);
         if (tmp.equals(*name))
         {
-            return i;
+            accountIndex = i;
+            break;
         }
     }
-    return -1;
-}
 
-void removeAccount(String *name)
-{
-    int index = findAccountIndex(name);
-    if (index <= -1)
+    if (accountIndex == -1)
     {
         // if the account does not exist, abort
         return;
@@ -338,9 +336,9 @@ void removeAccount(String *name)
 
     size_t accountSize = ACCOUNT_NAME_LEN + 2 * aes.blockSize();
     // move the following accounts up
-    for (int i = eepromAccount(index); i < eepromAccount(numAccounts); i++)
+    for (int i = eepromAccount(accountIndex); i < eepromAccount(numAccounts); i++)
     {
-        EEPROM.write(i - accountSize, EEPROM.read(i));
+        EEPROM.write(i, EEPROM.read(i + accountSize));
     }
 
     numAccounts--;
@@ -378,8 +376,6 @@ void storeNewPassword()
         return;
     }
 
-    // does the account already exist?
-    // int insertIndex = findAccountIndex(&name);
     int insertIndex = 0;
     bool accountExists = false;
 

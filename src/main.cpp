@@ -55,6 +55,16 @@ bool btnIsPressed(int pin, int &last)
     return false;
 }
 
+int eepromAccount(int accountIndex)
+{
+    return accountOffset + accountIndex * (accountNameLength + 2 * aes.blockSize());
+}
+
+int eepromPassword(int accountIndex, int block=0)
+{
+    return eepromAccount(accountIndex) + accountNameLength + block * aes.blockSize();
+}
+
 void displayPassword(int progress, uint8_t *buffer, char *info)
 {
     display.clearDisplay();
@@ -149,10 +159,9 @@ bool validateKey()
 
 void getAccountName(int accountIndex, char *buffer)
 {
-    size_t accountSize = accountNameLength + 2 * aes.blockSize();
     for (int i = 0; i < accountNameLength; i++)
     {
-        char c = (char)EEPROM.read(accountOffset + accountIndex * accountSize + i);
+        char c = (char)EEPROM.read(eepromAccount(accountIndex) + i);
         buffer[i] = c;
         if (c == '\0')
         {
@@ -231,7 +240,6 @@ void typePassword()
     }
 
     size_t bSize = aes.blockSize();
-    size_t accountSize = accountNameLength + 2 * aes.blockSize();
 
     uint8_t buffer[bSize];
 
@@ -239,7 +247,7 @@ void typePassword()
     {
         for (size_t i = 0; i < bSize; i++)
         {
-            buffer[i] = EEPROM.read(accountOffset + currentAccount * accountSize + i + accountNameLength + k * bSize);
+            buffer[i] = EEPROM.read(eepromPassword(currentAccount, k) + i);
         }
         aes.decryptBlock(buffer, buffer);
         for (size_t i = 0; i < bSize; i++)
@@ -345,12 +353,9 @@ void removeAccount(String *name)
 
     size_t accountSize = accountNameLength + 2 * aes.blockSize();
     // move the following accounts up
-    for (int i = index + 1; i < numAccounts; i++)
+    for (int i = eepromAccount(index); i < eepromAccount(numAccounts); i++)
     {
-        for (size_t k = 0; k < accountSize; k++)
-        {
-            EEPROM.write(accountOffset + (i - 1) * accountSize + k, EEPROM.read(accountOffset + i * accountSize + k));
-        }
+        EEPROM.write(i - accountSize, EEPROM.read(i));
     }
 
     numAccounts--;
@@ -390,16 +395,15 @@ void storeNewPassword()
 
     // does the account already exist?
     int insertIndex = findAccountIndex(&name);
-    size_t accountSize = accountNameLength + 2 * aes.blockSize();
     if (insertIndex == -1)
     {
         insertIndex = numAccounts;
         // write new account name
         for (unsigned int i = 0; i < min(accountNameLength, name.length()); i++)
         {
-            EEPROM.write(accountOffset + (accountSize * insertIndex) + i, name.charAt(i));
+            EEPROM.write(eepromAccount(insertIndex) + i, name.charAt(i));
         }
-        EEPROM.write(accountOffset + (accountSize * insertIndex) + min(accountNameLength, name.length()), '\0');
+        EEPROM.write(eepromAccount(insertIndex) + min(accountNameLength, name.length()), '\0');
     }
 
     size_t pwLength = 2 * aes.blockSize();
@@ -419,7 +423,7 @@ void storeNewPassword()
         aes.encryptBlock(buffer, buffer);
         for (size_t i = 0; i < aes.blockSize(); i++)
         {
-            EEPROM.write(accountOffset + accountSize * insertIndex + accountNameLength + i + k * aes.blockSize(), buffer[i]);
+            EEPROM.write(eepromPassword(insertIndex, k) + i, buffer[i]);
         }
     }
 

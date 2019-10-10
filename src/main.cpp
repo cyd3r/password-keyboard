@@ -379,14 +379,46 @@ void storeNewPassword()
     }
 
     // does the account already exist?
-    int insertIndex = findAccountIndex(&name);
-    if (insertIndex == -1)
+    // int insertIndex = findAccountIndex(&name);
+    int insertIndex = 0;
+    bool accountExists = false;
+
+    for (int i = numAccounts - 1; i >= 0; i--)
     {
-        insertIndex = numAccounts;
-        // write new account name
-        for (unsigned int i = 0; i < min(ACCOUNT_NAME_LEN, name.length()); i++)
+        char buffer[ACCOUNT_NAME_LEN];
+        getAccountName(i, buffer);
+        String tmp(buffer);
+        int comp = name.compareTo(tmp);
+
+        if (comp == 0)
         {
-            EEPROM.write(eepromAccount(insertIndex) + i, name.charAt(i));
+            insertIndex = i;
+            accountExists = true;
+            break;
+        }
+        else if (comp > 0)
+        {
+            insertIndex = i + 1;
+            accountExists = false;
+            break;
+        }
+    }
+
+    if (!accountExists)
+    {
+        // shift accounts to the right
+        for (int i = eepromAccount(numAccounts) - 1; i >= eepromAccount(insertIndex); i--)
+        {
+            EEPROM.write(i + ACCOUNT_NAME_LEN + 2 * aes.blockSize(), EEPROM.read(i));
+        }
+
+        numAccounts++;
+        EEPROM.write(0, numAccounts);
+
+        // write new account name
+        for (unsigned int k = 0; k < min(ACCOUNT_NAME_LEN, name.length()); k++)
+        {
+            EEPROM.write(eepromAccount(insertIndex) + k, name.charAt(k));
         }
         EEPROM.write(eepromAccount(insertIndex) + min(ACCOUNT_NAME_LEN, name.length()), '\0');
     }
@@ -413,12 +445,6 @@ void storeNewPassword()
     }
 
     aes.clear();
-
-    if (insertIndex == numAccounts)
-    {
-        numAccounts++;
-        EEPROM.write(0, numAccounts);
-    }
 
     displayAccounts();
 }

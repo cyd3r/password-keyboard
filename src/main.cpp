@@ -151,9 +151,10 @@ bool validateKey()
 
 void getAccountName(int accountIndex, char *buffer)
 {
+    size_t accountSize = accountNameLength + 2 * aes.blockSize();
     for (int i = 0; i < accountNameLength; i++)
     {
-        char c = (char)EEPROM.read(accountOffset + accountIndex * 48 + i);
+        char c = (char)EEPROM.read(accountOffset + accountIndex * accountSize + i);
         buffer[i] = c;
         if (c == '\0')
         {
@@ -198,7 +199,7 @@ void displayAccounts()
             {
                 display.setTextSize(1);
             }
-            char buffer[16];
+            char buffer[accountNameLength];
             getAccountName(clampAccountId(i), buffer);
             display.println(buffer);
         }
@@ -235,13 +236,14 @@ void typePassword()
     }
 
     size_t bSize = aes.blockSize();
+    size_t accountSize = accountNameLength + 2 * aes.blockSize();
 
     uint8_t buffer[bSize];
     bool requireSecondBlock = true;
 
     for (size_t i = 0; i < bSize; i++)
     {
-        buffer[i] = EEPROM.read(accountOffset + currentAccount * 48 + i + 16);
+        buffer[i] = EEPROM.read(accountOffset + currentAccount * accountSize + i + accountNameLength);
     }
     aes.decryptBlock(buffer, buffer);
     for (size_t i = 0; i < bSize; i++)
@@ -259,7 +261,7 @@ void typePassword()
     {
         for (size_t i = 0; i < bSize; i++)
         {
-            buffer[i] = EEPROM.read(accountOffset + currentAccount * 48 + i + 16 + bSize);
+            buffer[i] = EEPROM.read(accountOffset + currentAccount * accountSize + i + accountNameLength + bSize);
         }
         aes.decryptBlock(buffer, buffer);
         for (size_t i = 0; i < bSize; i++)
@@ -399,7 +401,7 @@ void storeNewPassword()
     {
         EEPROM.write(accountOffset + (accountSize * insertIndex) + i, name.charAt(i));
     }
-    EEPROM.write(accountOffset + (accountSize * insertIndex) + min(16, name.length()), '\0');
+    EEPROM.write(accountOffset + (accountSize * insertIndex) + min(accountNameLength, name.length()), '\0');
 
     String msg = "add " + name;
     char msgBuffer[msg.length() + 1];

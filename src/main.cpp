@@ -383,35 +383,12 @@ void removeAccount(String *name)
 void storeNewPassword()
 {
     int splitIndex = inputBuffer.indexOf('\x1F');
-    if (splitIndex == -1)
+    if (splitIndex <= -1 || splitIndex == 0 || (unsigned)splitIndex == inputBuffer.length() - 1)
     {
         return;
     }
     String name = inputBuffer.substring(0, splitIndex);
     String pw = inputBuffer.substring(splitIndex + 1);
-
-    if (name.length() == 0 || pw.length() == 0)
-    {
-        return;
-    }
-
-    // add terminator character
-    pw += '\0';
-
-    // does the account already exist?
-    int insertIndex = findAccountIndex(&name);
-    if (insertIndex == -1)
-    {
-        insertIndex = numAccounts;
-    }
-
-    size_t accountSize = accountNameLength + 2 * aes.blockSize();
-
-    for (unsigned int i = 0; i < min(accountNameLength, name.length()); i++)
-    {
-        EEPROM.write(accountOffset + (accountSize * insertIndex) + i, name.charAt(i));
-    }
-    EEPROM.write(accountOffset + (accountSize * insertIndex) + min(accountNameLength, name.length()), '\0');
 
     String msg = "add " + name;
     char msgBuffer[msg.length() + 1];
@@ -426,31 +403,39 @@ void storeNewPassword()
         return;
     }
 
+    // does the account already exist?
+    int insertIndex = findAccountIndex(&name);
+    size_t accountSize = accountNameLength + 2 * aes.blockSize();
+    if (insertIndex == -1)
+    {
+        insertIndex = numAccounts;
+        // write new account name
+        for (unsigned int i = 0; i < min(accountNameLength, name.length()); i++)
+        {
+            EEPROM.write(accountOffset + (accountSize * insertIndex) + i, name.charAt(i));
+        }
+        EEPROM.write(accountOffset + (accountSize * insertIndex) + min(accountNameLength, name.length()), '\0');
+    }
+
     size_t pwLength = 2 * aes.blockSize();
 
     char chars[pwLength];
     pw.toCharArray(chars, pwLength);
     chars[pwLength - 1] = '\0';
 
+    // write all password blocks
     uint8_t buffer[aes.blockSize()];
-    for (size_t i = 0; i < aes.blockSize(); i++)
+    for (int k = 0; k < 2; k++)
     {
-        buffer[i] = chars[i];
-    }
-    aes.encryptBlock(buffer, buffer);
-    for (size_t i = 0; i < aes.blockSize(); i++)
-    {
-        EEPROM.write(accountOffset + accountSize * insertIndex + accountNameLength + i, buffer[i]);
-    }
-
-    for (size_t i = 0; i < aes.blockSize(); i++)
-    {
-        buffer[i] = chars[i + aes.blockSize()];
-    }
-    aes.encryptBlock(buffer, buffer);
-    for (size_t i = 0; i < aes.blockSize(); i++)
-    {
-        EEPROM.write(accountOffset + accountSize * insertIndex + accountNameLength + i + aes.blockSize(), buffer[i]);
+        for (size_t i = 0; i < aes.blockSize(); i++)
+        {
+            buffer[i] = chars[i + k * aes.blockSize()];
+        }
+        aes.encryptBlock(buffer, buffer);
+        for (size_t i = 0; i < aes.blockSize(); i++)
+        {
+            EEPROM.write(accountOffset + accountSize * insertIndex + accountNameLength + i + k * aes.blockSize(), buffer[i]);
+        }
     }
 
     aes.clear();

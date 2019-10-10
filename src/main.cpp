@@ -77,21 +77,7 @@ void displayPassword(int progress, uint8_t *buffer, char *info)
     display.setCursor(16, 24);
     for (int i = 0; i < progress; i++)
     {
-        switch (buffer[i])
-        {
-        case 0x00u:
-            display.print('0');
-            break;
-        case 0x01u:
-            display.print('1');
-            break;
-        case 0x02u:
-            display.print('2');
-            break;
-        default:
-            display.print('?');
-            break;
-        }
+        display.print(buffer[i]);
     }
     for (size_t i = progress; i < AUTH_LEN; i++)
     {
@@ -240,7 +226,6 @@ void typePassword()
     }
 
     size_t bSize = aes.blockSize();
-
     uint8_t buffer[bSize];
 
     for (int k = 0; k < 2; k++)

@@ -59,8 +59,6 @@ void displayPassword(int progress, uint8_t *buffer, char *info)
 {
     display.clearDisplay();
 
-    display.setTextColor(WHITE);
-
     display.setTextSize(1);
     display.setCursor(0, 0);
     display.println(info);
@@ -178,7 +176,6 @@ void displayAccounts()
     {
         display.setCursor(0, 16);
         display.setTextSize(2);
-        display.setTextColor(WHITE);
         display.println("No");
         display.println("Passwords.");
     }
@@ -186,7 +183,6 @@ void displayAccounts()
     {
         display.setCursor(0, 0);
         display.setTextSize(1);
-        display.setTextColor(WHITE);
 
         int start = currentAccount - 3;
         for (int i = start; i <= currentAccount + 3; i++)
@@ -213,7 +209,6 @@ void displayWrongPassword()
     display.clearDisplay();
     display.setCursor(16, 24);
     display.setTextSize(2);
-    display.setTextColor(WHITE);
     display.println("wrong :(");
     display.display();
 
@@ -354,8 +349,15 @@ int findAccountIndex(String *name)
     return -1;
 }
 
-void removeAccount(int index)
+void removeAccount(String *name)
 {
+    int index = findAccountIndex(name);
+    if (index <= -1)
+    {
+        // if the account does not exist, abort
+        return;
+    }
+
     size_t accountSize = accountNameLength + 2 * aes.blockSize();
     // move the following accounts up
     for (int i = index + 1; i < numAccounts; i++)
@@ -368,6 +370,14 @@ void removeAccount(int index)
 
     numAccounts--;
     EEPROM.write(0, numAccounts);
+
+    if (currentAccount == numAccounts)
+    {
+        currentAccount = 0;
+    }
+
+    // update the account view
+    displayAccounts();
 }
 
 void storeNewPassword()
@@ -460,43 +470,25 @@ void receiveInput()
     {
         char val = Serial.read();
 
+        // newline marks the end of a serial transmission
         if (val == '\n')
         {
-            // end of input
-            // remove account if the first character is the backspace character
-            // add account otherwise
-
-            display.clearDisplay();
-            display.setCursor(0, 0);
-            display.setTextColor(WHITE);
-            display.setTextSize(1);
-
+            // first character is backspace character
             if (inputBuffer.charAt(0) == '\x8')
             {
                 String accountName = inputBuffer.substring(1);
-                int removeIndex = findAccountIndex(&accountName);
-                if (removeIndex > -1)
-                {
-                    removeAccount(removeIndex);
-                }
-                inputBuffer = "";
-
-                if (currentAccount == numAccounts)
-                {
-                    currentAccount = 0;
-                }
-                displayAccounts();
+                removeAccount(&accountName);
             }
+            // first character is DEL
             else if (inputBuffer.charAt(0) == '\x7F')
             {
                 resetKey();
-                inputBuffer = "";
             }
             else
             {
                 storeNewPassword();
-                inputBuffer = "";
             }
+            inputBuffer = "";
         }
         else
         {

@@ -9,7 +9,8 @@
 // TODO: add wrong password cooldown
 
 #include <Arduino.h>
-#include <Keyboard.h>
+#include <KeyboardMultiLanguage.h>
+#include "KeyboardMappingGE.h"
 
 // OLED
 #include <Adafruit_SSD1306.h>
@@ -221,6 +222,8 @@ void typePassword()
     size_t bSize = aes.blockSize();
     uint8_t buffer[bSize];
 
+    char password[2 * aes.blockSize()];
+
     for (int k = 0; k < 2; k++)
     {
         for (size_t i = 0; i < bSize; i++)
@@ -228,18 +231,10 @@ void typePassword()
             buffer[i] = EEPROM.read(eepromPassword(currentAccount, k) + i);
         }
         aes.decryptBlock(buffer, buffer);
-        for (size_t i = 0; i < bSize; i++)
-        {
-            char c = buffer[i];
-            if (c == '\0')
-            {
-                // no more blocks are needed
-                k = 2;
-                break;
-            }
-            Keyboard.print(c);
-        }
+        memcpy(password + k * bSize, buffer, bSize);
     }
+
+    Keyboard.print(password);
 
     aes.clear();
 
@@ -281,7 +276,7 @@ void setup()
     pinMode(PIN_SUBMIT, INPUT_PULLUP);
     pinMode(PIN_NEXT_ACCOUNT, INPUT_PULLUP);
     pinMode(PIN_PREV_ACCOUNT, INPUT_PULLUP);
-    Keyboard.begin();
+    Keyboard.language(German);
     Serial.begin(9600);
 
     numAccounts = EEPROM.read(0);

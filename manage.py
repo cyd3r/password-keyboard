@@ -15,9 +15,9 @@ def usage():
 
 def get_port():
     for port in comports():
-        if "VID:PID=2341:0037" in port.usb_info():
+        if port.product == "Arduino Micro":
             return port[0]
-    raise Exception("Auto detection failed")
+    raise Exception("Auto detection failed (searched for Arduino Micro)")
 
 encoding = "latin-1"
 baud_rate = 9600

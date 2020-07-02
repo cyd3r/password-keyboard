@@ -19,6 +19,9 @@
 #include <AES.h>
 #include <EEPROM.h>
 
+// #define EXTERNAL_EEPROM 0x50 // Address of 24LC256 eeprom chip
+#include "storage.h"
+
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_RESET -1 // my OLED screen has no reset pin
@@ -131,7 +134,7 @@ bool setKey(char *info, bool validate=true)
         uint8_t valBuffer[aes.blockSize()];
         for (size_t i = 0; i < aes.blockSize(); i++)
         {
-            valBuffer[i] = EEPROM.read(1 + i);
+            valBuffer[i] = readEEPROM(1 + i);
         }
         aes.decryptBlock(valBuffer, valBuffer);
         for (uint8_t i = 0; i < aes.blockSize(); i++)
@@ -163,7 +166,7 @@ void getAccountName(int accountIndex, char *buffer)
 {
     for (int i = 0; i < ACCOUNT_NAME_LEN; i++)
     {
-        char c = (char)EEPROM.read(eepromAccount(accountIndex) + i);
+        char c = (char)readEEPROM(eepromAccount(accountIndex) + i);
         buffer[i] = c;
         if (c == '\0')
         {
@@ -228,7 +231,7 @@ void typePassword()
     {
         for (size_t i = 0; i < bSize; i++)
         {
-            buffer[i] = EEPROM.read(eepromPassword(currentAccount, k) + i);
+            buffer[i] = readEEPROM(eepromPassword(currentAccount, k) + i);
         }
         aes.decryptBlock(buffer, buffer);
         memcpy(password + k * bSize, buffer, bSize);
@@ -255,17 +258,17 @@ void resetKey()
 
     for (size_t i = 0; i < aes.blockSize(); i++)
     {
-        EEPROM.write(1 + i, buffer[i]);
+        writeEEPROM(1 + i, buffer[i]);
     }
 
     // reset the accounts
-    EEPROM.write(0, 0);
+    writeEEPROM(0, 0);
     numAccounts = 0;
 
     // clear the rest of the EEPROM
     for (size_t i = ACCOUNT_OFFSET; i < EEPROM.length(); i++)
     {
-        EEPROM.write(i, 0);
+        writeEEPROM(i, 0);
     }
 
     displayAccounts();
@@ -279,7 +282,7 @@ void setup()
     Keyboard.language(German);
     Serial.begin(9600);
 
-    numAccounts = EEPROM.read(0);
+    numAccounts = readEEPROM(0);
 
     accountLimit = (EEPROM.length() - 17) / (ACCOUNT_NAME_LEN + 2 * aes.blockSize());
 
@@ -328,11 +331,11 @@ void removeAccount(String *name)
     // move the following accounts up
     for (int i = eepromAccount(accountIndex); i < eepromAccount(numAccounts); i++)
     {
-        EEPROM.write(i, EEPROM.read(i + accountSize));
+        writeEEPROM(i, readEEPROM(i + accountSize));
     }
 
     numAccounts--;
-    EEPROM.write(0, numAccounts);
+    writeEEPROM(0, numAccounts);
 
     if (currentAccount == numAccounts)
     {
@@ -395,18 +398,18 @@ void storeNewPassword()
         // shift accounts to the right
         for (int i = eepromAccount(numAccounts) - 1; i >= eepromAccount(insertIndex); i--)
         {
-            EEPROM.write(i + ACCOUNT_NAME_LEN + 2 * aes.blockSize(), EEPROM.read(i));
+            writeEEPROM(i + ACCOUNT_NAME_LEN + 2 * aes.blockSize(), readEEPROM(i));
         }
 
         numAccounts++;
-        EEPROM.write(0, numAccounts);
+        writeEEPROM(0, numAccounts);
 
         // write new account name
         for (unsigned int k = 0; k < min(ACCOUNT_NAME_LEN, name.length()); k++)
         {
-            EEPROM.write(eepromAccount(insertIndex) + k, name.charAt(k));
+            writeEEPROM(eepromAccount(insertIndex) + k, name.charAt(k));
         }
-        EEPROM.write(eepromAccount(insertIndex) + min(ACCOUNT_NAME_LEN, name.length()), '\0');
+        writeEEPROM(eepromAccount(insertIndex) + min(ACCOUNT_NAME_LEN, name.length()), '\0');
     }
 
     size_t pwLength = 2 * aes.blockSize();
@@ -426,7 +429,7 @@ void storeNewPassword()
         aes.encryptBlock(buffer, buffer);
         for (size_t i = 0; i < aes.blockSize(); i++)
         {
-            EEPROM.write(eepromPassword(insertIndex, k) + i, buffer[i]);
+            writeEEPROM(eepromPassword(insertIndex, k) + i, buffer[i]);
         }
     }
 

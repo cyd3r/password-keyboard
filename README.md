@@ -52,7 +52,8 @@ This will remove all your stored passwords and will reset the master password.
 
 Passwords are stored on an (external) EEPROM. For each account, 16 bytes are allocated for the account name and 32 bytes are required for the encrypted password (48 bytes in total).
 
-With an EEPROM with 8kB, 170 accounts are possible.
++ With an EEPROM with 8kB, 170 accounts should be possible.
++ With an EEPROM with 1kB (internal EEPROM of the Arduino Micro), 21 accounts should be possible.
 
 ## Encryption
 

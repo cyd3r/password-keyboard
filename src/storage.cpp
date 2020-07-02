@@ -1,57 +1,45 @@
-// #include <Arduino.h>
-// #include <KeyboardMultiLanguage.h>
-// #include "KeyboardMappingGE.h"
+#include <Arduino.h>
 
-// // OLED
-// #include <Adafruit_SSD1306.h>
+#ifdef EXTERNAL_EEPROM
+#include <Wire.h>
 
-// // passwords
-// #include <AES.h>
-// #include <EEPROM.h>
+void writeEEPROM(unsigned int eeaddress, byte data)
+{
+    Wire.beginTransmission(EXTERNAL_EEPROM);
+    Wire.write((int)(eeaddress >> 8));   // MSB
+    Wire.write((int)(eeaddress & 0xFF)); // LSB
+    Wire.write(data);
+    Wire.endTransmission();
 
-// #include <Wire.h>
+    delay(5);
+}
 
-// #define disk1 0x50 //Address of 24LC256 eeprom chip
+byte readEEPROM(unsigned int eeaddress)
+{
+    byte rdata = 0xFF;
 
-// void writeEEPROM(int deviceaddress, unsigned int eeaddress, byte data)
-// {
-//     Wire.beginTransmission(deviceaddress);
-//     Wire.write((int)(eeaddress >> 8));   // MSB
-//     Wire.write((int)(eeaddress & 0xFF)); // LSB
-//     Wire.write(data);
-//     Wire.endTransmission();
+    Wire.beginTransmission(EXTERNAL_EEPROM);
+    Wire.write((int)(eeaddress >> 8));   // MSB
+    Wire.write((int)(eeaddress & 0xFF)); // LSB
+    Wire.endTransmission();
 
-//     delay(5);
-// }
+    Wire.requestFrom(EXTERNAL_EEPROM, 1);
 
-// byte readEEPROM(int deviceaddress, unsigned int eeaddress)
-// {
-//     byte rdata = 0xFF;
+    if (Wire.available())
+        rdata = Wire.read();
 
-//     Wire.beginTransmission(deviceaddress);
-//     Wire.write((int)(eeaddress >> 8));   // MSB
-//     Wire.write((int)(eeaddress & 0xFF)); // LSB
-//     Wire.endTransmission();
+    return rdata;
+}
 
-//     Wire.requestFrom(deviceaddress, 1);
+#else
+#include <EEPROM.h>
 
-//     if (Wire.available())
-//         rdata = Wire.read();
+void writeEEPROM(unsigned int eeaddress, byte data)
+{
+    EEPROM.write(eeaddress, data);
+}
+byte readEEPROM(unsigned int eeaddress) {
+    return EEPROM.read(eeaddress);
+}
 
-//     return rdata;
-// }
-
-// void setup(void)
-// {
-//     Serial.begin(9600);
-//     while (!Serial)
-//         ;
-//     Wire.begin();
-
-//     unsigned int address = 0;
-
-//     writeEEPROM(disk1, address, 123);
-//     Serial.print(readEEPROM(disk1, address), DEC);
-// }
-
-// void loop() {}
+#endif

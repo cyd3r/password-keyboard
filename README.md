@@ -10,6 +10,10 @@ All passwords are stored in an AES encrypted storage.
 - OLED display
 - 3 push buttons
 
+## Setup
+
+To use the `manage.py` utility you must install [pySerial](https://pyserial.readthedocs.io/en/latest/pyserial.html).
+
 ## Usage
 
 ### Get a password
@@ -56,6 +60,7 @@ The password files are AES128 encrypted. The AES key is generated from a sequenc
 
 ## TODOs
 
+- fix account names that are too long (leads to display errors)
 - solve keyboard layouts, currently fixed at compile time
 - add wrong password cooldown
 - add better account navigation

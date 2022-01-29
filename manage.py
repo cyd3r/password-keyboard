@@ -17,7 +17,7 @@ def get_port():
     for port in comports():
         if port.product == "Arduino Micro":
             return port[0]
-    raise Exception("Auto detection failed (searched for Arduino Micro)")
+    raise FileNotFoundError("Auto detection failed (searched for Arduino Micro)")
 
 encoding = "latin-1"
 baud_rate = 9600
@@ -44,7 +44,12 @@ if __name__ == "__main__":
             with Serial(get_port(), baud_rate) as ser:
                 ser.write("\x7F\n".encode(encoding))
 
+        elif sys.argv[1] == "find":
+            print("Found board on port", get_port())
+
         else:
             usage()
+    except FileNotFoundError as err:
+        print(err)
     except KeyboardInterrupt:
         print()

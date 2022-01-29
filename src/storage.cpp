@@ -1,5 +1,7 @@
 #include <Arduino.h>
 
+#define EXTERNAL_EEPROM 0x50 // Address of 24LC256 eeprom chip
+
 #ifdef EXTERNAL_EEPROM
 #include <Wire.h>
 

@@ -19,7 +19,6 @@
 #include <AES.h>
 #include <EEPROM.h>
 
-// #define EXTERNAL_EEPROM 0x50 // Address of 24LC256 eeprom chip
 #include "storage.h"
 
 #define SCREEN_WIDTH 128
